@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>canvas_test</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/reactflow@11/dist/umd/index.js" crossorigin></script>
+  <link rel="stylesheet" href="https://unpkg.com/reactflow@11/dist/style.css" />
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body, html, #root { width: 100%; height: 100%; margin: 0; padding: 0; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useCallback } = React;
+    const { 
+      ReactFlow, 
+      ReactFlowProvider,
+      useNodesState, 
+      useEdgesState, 
+      Controls, 
+      Background, 
+      useReactFlow,
+      addEdge
+    } = window.ReactFlow;
+
+    function App() {
+      const [nodes, setNodes, onNodesChange] = useNodesState([]);
+      const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+      const reactFlowInstance = useReactFlow();
+
+      const onDragOver = useCallback((event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }, []);
+
+      const onDrop = useCallback((event) => {
+        event.preventDefault();
+        const type = event.dataTransfer.getData('application/reactflow');
+        if (!type) return;
+
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+
+        const newNode = {
+          id: Date.now().toString(),
+          type: 'default',
+          position,
+          data: { label: type },
+        };
+        setNodes((nds) => nds.concat(newNode));
+      }, [setNodes, reactFlowInstance]);
+
+      const onConnect = useCallback((connection) => {
+        setEdges((eds) => addEdge(connection, eds));
+      }, [setEdges]);
+
+      return (
+        <div style={{ display: 'flex', width: '100%', height: '100%' }}>
+          <aside style={{ width: 140, background: '#f0f0f0', borderRight: '1px solid #ccc', padding: 10 }}>
+            <h3>Library</h3>
+            <div
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('application/reactflow', 'component A');
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              style={{
+                background: 'white', border: '1px solid #999', padding: 8, marginBottom: 8, cursor: 'grab'
+              }}
+            >
+              component A
+            </div>
+            <div
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('application/reactflow', 'component B');
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              style={{
+                background: 'white', border: '1px solid #999', padding: 8, marginBottom: 8, cursor: 'grab'
+              }}
+            >
+              component B
+            </div>
+          </aside>
+
+          <div style={{ flex: 1 }}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onConnect={onConnect}
+              fitView
+            >
+              <Controls />
+              <Background />
+            </ReactFlow>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(
+      <ReactFlowProvider>
+        <App />
+      </ReactFlowProvider>
+    );
+  </script>
+</body>
+</html>
