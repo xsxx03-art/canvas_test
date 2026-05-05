@@ -26,15 +26,73 @@
       Controls, 
       Background, 
       useReactFlow,
-      addEdge
+      addEdge,
+      Handle,
+      Position,
     } = window.ReactFlow;
+
+    // Custom node with four connection areas on the left and right sides,
+    // each biased toward the top or bottom of the node.
+    // Each area has both a source and a target handle, allowing bidirectional connections.
+    const CustomNode = ({ id, data }) => {
+      const baseHandleStyle = {
+        width: 10,
+        height: 10,
+        background: '#555',
+        border: '2px solid #fff',
+        borderRadius: '50%',
+      };
+
+      // Left side, near the top
+      const leftTopPortStyle = { ...baseHandleStyle, top: '25%', transform: 'translate(-50%, -50%)' };
+      // Left side, near the bottom
+      const leftBottomPortStyle = { ...baseHandleStyle, top: '75%', transform: 'translate(-50%, -50%)' };
+      // Right side, near the top
+      const rightTopPortStyle = { ...baseHandleStyle, top: '25%', transform: 'translate(50%, -50%)' };
+      // Right side, near the bottom
+      const rightBottomPortStyle = { ...baseHandleStyle, top: '75%', transform: 'translate(50%, -50%)' };
+
+      return (
+        <div style={{
+          padding: '10px 20px',
+          border: '1px solid #333',
+          borderRadius: 6,
+          background: '#fff',
+          minWidth: 100,
+          textAlign: 'center',
+          position: 'relative',
+        }}>
+          <div>{data.label}</div>
+
+          {/* Left-top pair */}
+          <Handle type="source" position={Position.Left} id="port-lt-source" style={{ ...leftTopPortStyle, zIndex: 10 }} />
+          <Handle type="target" position={Position.Left} id="port-lt-target" style={{ ...leftTopPortStyle, zIndex: 5 }} />
+
+          {/* Left-bottom pair */}
+          <Handle type="source" position={Position.Left} id="port-lb-source" style={{ ...leftBottomPortStyle, zIndex: 10 }} />
+          <Handle type="target" position={Position.Left} id="port-lb-target" style={{ ...leftBottomPortStyle, zIndex: 5 }} />
+
+          {/* Right-top pair */}
+          <Handle type="source" position={Position.Right} id="port-rt-source" style={{ ...rightTopPortStyle, zIndex: 10 }} />
+          <Handle type="target" position={Position.Right} id="port-rt-target" style={{ ...rightTopPortStyle, zIndex: 5 }} />
+
+          {/* Right-bottom pair */}
+          <Handle type="source" position={Position.Right} id="port-rb-source" style={{ ...rightBottomPortStyle, zIndex: 10 }} />
+          <Handle type="target" position={Position.Right} id="port-rb-target" style={{ ...rightBottomPortStyle, zIndex: 5 }} />
+        </div>
+      );
+    };
+
+    const nodeTypes = {
+      custom: CustomNode,
+    };
 
     function App() {
       const [nodes, setNodes, onNodesChange] = useNodesState([]);
       const [edges, setEdges, onEdgesChange] = useEdgesState([]);
       const reactFlowInstance = useReactFlow();
 
-      // Find the currently selected node
+      // Currently selected node
       const selectedNode = nodes.find(n => n.selected);
 
       const onDragOver = useCallback((event) => {
@@ -47,7 +105,6 @@
         const type = event.dataTransfer.getData('application/reactflow');
         if (!type) return;
 
-        // Convert screen coordinates to flow coordinates
         const position = reactFlowInstance.screenToFlowPosition({
           x: event.clientX,
           y: event.clientY,
@@ -55,7 +112,7 @@
 
         const newNode = {
           id: Date.now().toString(),
-          type: 'default',
+          type: 'custom',   // Use custom node with four directional handles
           position,
           data: { label: type },
         };
@@ -66,7 +123,7 @@
         setEdges((eds) => addEdge(connection, eds));
       }, [setEdges]);
 
-      // Update the position of a specific node
+      // Update position of selected node
       const updateNodePosition = useCallback((id, axis, value) => {
         setNodes((nds) =>
           nds.map((node) =>
@@ -79,12 +136,12 @@
 
       return (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
-          {/* Left sidebar: component library with two folders */}
+          {/* Left sidebar: component library */}
           <aside style={{ width: 220, background: '#f0f0f0', borderRight: '1px solid #ccc', padding: 10, overflowY: 'auto' }}>
             <h3>Library</h3>
             
             <details open>
-              <summary> 1</summary>
+              <summary>1</summary>
               <div
                 draggable
                 onDragStart={(e) => {
@@ -98,7 +155,7 @@
             </details>
 
             <details open>
-              <summary> 2</summary>
+              <summary>2</summary>
               <div
                 draggable
                 onDragStart={(e) => {
@@ -122,6 +179,7 @@
               onDragOver={onDragOver}
               onDrop={onDrop}
               onConnect={onConnect}
+              nodeTypes={nodeTypes}
               fitView
             >
               <Controls />
